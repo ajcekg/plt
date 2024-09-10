@@ -1,0 +1,6 @@
+title: plt
+compo: 256 B Intro Compo
+author: ajcek/Lamers
+platform: stock Atari XL/XE 8 bit, no sound
+
+sinus table generator:https://codebase64.org/doku.php?id=base:generating_approximate_sines_in_assembly by White Flame

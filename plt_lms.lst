@@ -1,0 +1,341 @@
+mads 2.1.0 build 8 (23 Dec 19)
+Source: C:\hobby\projects\repos\atari_priv\256\256_ploter\plt_lms.asm
+     1 					opt h+
+     2 					org $80
+     3 					
+     4 					icl "atari.hea"
+Source: C:\hobby\projects\repos\atari_priv\256\256_ploter\atari.hea
+     1 				.IF .NOT .DEF atari_hw_def
+     2 				atari_hw_def = 1
+     3
+     4
+     5 				.enum	@dmactl
+     6 					blank	= %00
+     7 					narrow	= %01
+     8 					standard= %10
+     9 					wide	= %11
+    10 					missiles= %100
+    11 					players	= %1000
+    12 					lineX1	= %10000
+    13 					lineX2	= %00000
+    14 					dma	=     %100000
+    15 				.ende
+    16
+    17 				scr48	= @dmactl(wide|dma|players|missiles|lineX1)		;screen 48b
+    18 				scr40	= @dmactl(standard|dma|players|missiles|lineX1)		;screen 40b
+    19 				scr32	= @dmactl(narrow|dma|players|missiles|lineX1)		;screen 32b
+    20
+    21 				.enum	@pmcntl
+    22 					missiles= %1
+    23 					players	= %10
+    24 					trigs	= %100
+    25 				.ende
+    26
+    27 				.enum	@gtictl
+    28 					prior0	= %0
+    29 					prior1	= %1
+    30 					prior2	= %10
+    31 					prior4	= %100
+    32 					prior8	= %1000
+    33 					ply5	= %10000	; Fifth Player Enable
+    34 					mlc	= %100000	; Multiple Color Player Enable
+    35 					mode9	= %01000000
+    36 					mode10	= %10000000
+    37 					mode11	= %11000000
+    38 				.ende
+    39
+    40
+    41
+    42 				* ---------------------------------------------------------------------------------------------
+    43 				* ---	OS
+    44 				* ---------------------------------------------------------------------------------------------
+    45
+    46 				lmargin	= $52
+    47 				rmargin	= $53
+    48 				rowcrs	= $54
+    49 				colcrs	= $55
+    50
+    51 				* ---------------------------------------------------------------------------------------------
+    52 				* ---	KEY ($d209)
+    53 				* ---------------------------------------------------------------------------------------------
+    54 				key_esc		= 28
+    55 				key_space	= 33
+    56 				key_v		= 16
+    57 				key_b		= 21
+    58 				key_n		= 35
+    59 				key_m		= 37
+    60
+    61 				* ---------------------------------------------------------------------------------------------
+    62 				* ---	GTIA
+    63 				* ---------------------------------------------------------------------------------------------
+    64 				hposp0	=	$D000		; pozioma pozycja gracza 0 (Z)
+    65 				hposp1	=	$D001		; pozioma pozycja gracza 1 (Z)
+    66 				hposp2	=	$D002		; pozioma pozycja gracza 2 (Z)
+    67 				hposp3	=	$D003		; pozioma pozycja gracza 3 (Z)
+    68 				hposm0	=	$D004		; pozioma pozycja pocisku 0 (Z)
+    69 				hposm1	=	$D005		; pozioma pozycja pocisku 1 (Z)
+    70 				hposm2	=	$D006		; pozioma pozycja pocisku 2 (Z)
+    71 				hposm3	=	$D007		; pozioma pozycja pocisku 3 (Z)
+    72 				sizep0	=	$D008		; poziomy rozmiar gracza 0 (Z)
+    73 				sizep1	=	$D009		; poziomy rozmiar gracza 1 (Z)
+    74 				sizep2	=	$D00A		; poziomy rozmiar gracza 2 (Z)
+    75 				sizep3	=	$D00B		; poziomy rozmiar gracza 3 (Z)
+    76 				sizem	=	$D00C		; poziomy rozmiar pocisków (Z)
+    77 				grafp0	=	$D00D		; rejestr grafiki gracza 0 (Z)
+    78 				grafp1	=	$D00E		; rejestr grafiki gracza 1 (Z)
+    79 				grafp2	=	$D00F		; rejestr grafiki gracza 2 (Z)
+    80 				grafp3	=	$D010		; rejestr grafiki gracza 3 (Z)
+    81 				grafm	=	$D011		; rejestr grafiki pocisków (Z)
+    82 				colpm0	=	$D012		; rejestr koloru gracza i pocisku 0 (Z)
+    83 				colpm1	=	$D013		; rejestr koloru gracza i pocisku 1 (Z)
+    84 				colpm2	=	$D014		; rejestr koloru gracza i pocisku 2 (Z)
+    85 				colpm3	=	$D015		; rejestr koloru gracza i pocisku 3 (Z)
+    86 				colpf0	=	$D016		; rejestr koloru pola gry 0 (Z)
+    87 				colpf1	=	$D017		; rejestr koloru pola gry 1 (Z)
+    88 				colpf2	=	$D018		; rejestr koloru pola gry 2 (Z)
+    89 				colpf3	=	$D019		; rejestr koloru pola gry 3 (Z)
+    90 				colbak	=	$D01A		; rejestr koloru t³a (Z)
+    91
+    92 				kolm0pf	=	$D000		; kolizja pocisku 0 z polem gry (O)
+    93 				kolm1pf	=	$D001		; kolizja pocisku 1 z polem gry (O)
+    94 				kolm2pf	=	$D002		; kolizja pocisku 2 z polem gry (O)
+    95 				kolm3pf	=	$D003		; kolizja pocisku 3 z polem gry (O)
+    96 				kolp0pf	=	$D004		; kolizja gracza 0 z polem gry (O)
+    97 				kolp1pf	=	$D005		; kolizja gracza 1 z polem gry (O)
+    98 				kolp2pf	=	$D006		; kolizja gracza 2 z polem gry (O)
+    99 				kolp3pf	=	$D007		; kolizja gracza 3 z polem gry (O)
+   100 				kolm0p	=	$D008		; kolizja pocisku 0 z graczem (O)
+   101 				kolm1p	=	$D009		; kolizja pocisku 1 z graczem (O)
+   102 				kolm2p	=	$D00A		; kolizja pocisku 2 z graczem (O)
+   103 				kolm3p	=	$D00B		; kolizja pocisku 3 z graczem (O)
+   104 				kolp0p	=	$D00C		; kolizja gracza 0 z innym graczem (O)
+   105 				kolp1p	=	$D00D		; kolizja gracza 1 z innym graczem (O)
+   106 				kolp2p	=	$D00E		; kolizja gracza 2 z innym graczem (O)
+   107 				kolp3p	=	$D00F		; kolizja gracza 3 z innym graczem (O)
+   108 				trig0	=	$D010		; stan przycisku joysticka 0 (O)
+   109 				trig1	=	$D011		; stan przycisku joysticka 1 (O)
+   110 				trig3	=	$D013		; znacznik do³¹czenia cartridge-a (O)
+   111 				pal	=	$D014		; znacznik systemu TV (O)
+   112
+   113 				gtictl	=	$D01B		; rejestr kontroli uk³adu GTIA
+   114 				gtiactl	=	gtictl
+   115
+   116 				vdelay	=	$D01C		; licznik opóŸnienia pionowego P/MG
+   117 				pmcntl	=	$D01D		; rejestr kontroli graczy i pocisków
+   118 				hitclr	=	$D01E		; rejestr kasowania rejestrów kolizji
+   119 				consol	=	$D01F		; rejestr stanu klawiszy konsoli
+   120
+   121 				* ---------------------------------------------------------------------------------------------
+   122 				* ---	POKEY
+   123 				* ---------------------------------------------------------------------------------------------
+   124
+   125 				irqens	=	$0010		; rejestr-cieñ IRQEN
+   126 				irqstat	=	$0011		; rejestr-cieñ IRQST
+   127
+   128 				audf1	=	$d200		; czêstotliwoœæ pracy generatora 1 (Z)
+   129 				audc1	=	$d201		; rejestr kontroli dŸwiêku generatora 1 (Z)
+   130 				audf2	=	$d202		; czêstotliwoœæ pracy generatora 2 (Z)
+   131 				audc2	=	$d203		; rejestr kontroli dŸwiêku generatora 2 (Z)
+   132 				audf3	=	$d204		; czêstotliwoœæ pracy generatora 3 (Z)
+   133 				audc3	=	$d205		; rejestr kontroli dŸwiêku generatora 3 (Z)
+   134 				audf4	=	$d206		; czêstotliwoœæ pracy generatora 4 (Z)
+   135 				audc4	=	$d207		; rejestr kontroli dŸwiêku generatora 4 (Z)
+   136
+   137 				audctl	=	$D208		; rejestr kontroli generatorów dŸwiêku (Z)
+   138 				stimer	=	$D209		; rejestr zerowania liczników (Z)
+   139 				kbcode	=	$D209		; kod ostatnio naciœniêtego klawisza (O)
+   140 				skstres	=	$D20A		; rejestr statusu z³¹cza szeregowego (Z)
+   141 				random	=	$D20A		; rejestr liczby losowej (O)
+   142 				serout	=	$D20D		; szeregowy rejestr wyjœciowy (Z)
+   143 				serin	=	$D20D		; szeregowy rejestr wejœciowy (O)
+   144 				irqen	=	$D20E		; zezwolenie przerwañ IRQ (Z)
+   145 				irqst	=	$D20E		; status przerwañ IRQ (O)
+   146 				skctl	=	$D20F		; rejestr kontroli z³¹cza szeregowego (Z)
+   147 				skstat	=	$D20F		; rejestr statusu z³¹cza szeregowego (O)
+   148
+   149 				* ---------------------------------------------------------------------------------------------
+   150 				* ---	PIA
+   151 				* ---------------------------------------------------------------------------------------------
+   152 				porta	=	$D300		; port A uk³adu PIA
+   153 				portb	=	$D301		; port B uk³adu PIA
+   154 				pactl	=	$D302		; rejestr kontroli portu A
+   155 				pbctl	=	$D303		; rejestr kontroli portu B
+   156
+   157 				* ---------------------------------------------------------------------------------------------
+   158 				* ---	ANTIC
+   159 				* ---------------------------------------------------------------------------------------------
+   160 				dmactl	=	$D400		; rejestr kontroli dostêpu do pamiêci
+   161 				chrctl	=	$D401		; rejestr kontroli wyœwietlania znaków
+   162 				dlptr	=	$D402		; adres programu ANTIC-a
+   163 				hscrol	=	$D404		; znacznik poziomego przesuwu obrazu
+   164 				vscrol	=	$D405		; znacznik pionowego przesuwu obrazu
+   165 				pmbase	=	$D407		; adres pamiêci graczy i pocisków
+   166 				chbase	=	$D409		; adres zestawu znaków
+   167 				wsync	=	$D40A		; znacznik oczekiwania na synchronizacjê poziom¹
+   168 				vcount	=	$D40B		; licznik linii obrazu
+   169 				lpenh	=	$D40C		; poziome po³o¿enie pióra œwietlengo
+   170 				lpenv	=	$D40D		; pionowe po³o¿enie pióra œwietlnego
+   171 				nmien	=	$D40E		; rejestr zezwoleñ na przerwania NMI
+   172 				nmist	=	$D40F		; rejestr statusu przerwañ NMI
+   173
+   174 				* ---------------------------------------------------------------------------------------------
+   175 				* ---	OTHER
+   176 				* ---------------------------------------------------------------------------------------------
+   177
+   178 				nmivec  =   $fffa
+   179 				reservec=   $fffc
+   180 				irqvec  =   $fffe
+   181
+   182 				.ENDIF
+     5
+     6 = 0060				value = $60
+     7 = 0062				delta = $62
+     8 = 0064				t1 = $64
+     9 = 0035				t2 = $35
+    10 = 0080				t3 = start
+    11 					
+    12 = 0080				x1 = start
+    13 = 0081				y1 = start+1
+    14
+    15 					
+    16
+    17
+    18 = 1000				mem = $1000
+    19 = 1100				sine = mem  + $100
+    20 = 4148				dl	 = $4141+7	;sine + $200
+    21 = 1300				px	 = sine + $200
+    22 = 1400				pxb	 = px + $100
+    23 = 1500				yh	 = pxb+$100
+    24 = 1600				yl	 = yh+$100
+    25 = 1700				ch   = yl+$100
+    26 = 1800				cl   = ch+$100
+    27 = 3000				scr  = $3000
+    28 					
+    29 				start
+    30
+    31 FFFF> 0080-0179> A2 00		ldx #0
+    32 0082 8E 0E D4			stx nmien
+    33 0085 A0 21			ldy #%00100001
+    34 0087 8C 00 D4			sty dmactl
+    35
+    36 				; clear mem, gen dl, calc tab
+    37 008A A0 3F			ldy #63
+    38 008C A9 00		k	lda #0
+    39 008E 9D 00 10		l	sta mem,x
+    40 0091 99 41 00			sta $80-63,y
+    41 0094 A9 70			lda #$70
+    42 0096 9D 48 40			sta dl-$100,x
+    43 0099 A9 0F			lda #$f
+    44 009B 9D 48 41			sta dl,x
+    45 009E 8A				txa
+    46 009F 4A				lsr
+    47 00A0 4A				lsr
+    48 00A1 4A				lsr
+    49 00A2 9D 00 13			sta px,x
+    50
+    51 00A5 A9 00		m0	lda #0
+    52 00A7 9D 00 16			sta yl,x
+    53 00AA 18				clc
+    54 00AB 69 20			adc #32
+    55 00AD 85 A6			sta m0+1
+    56 00AF A9 50		m1	lda #$50
+    57 00B1 9D 00 15			sta yh,x
+    58 00B4 69 00			adc #0
+    59 00B6 85 B0			sta m1+1 
+    60
+    61 00B8 9A				txs
+    62 00B9 8A				txa
+    63 00BA 29 07			and #$7
+    64 00BC AA				tax
+    65 00BD BD 72 01			lda t,x
+    66 00C0 BA				tsx
+    67 00C1 9D 00 14			sta pxb,x
+    68
+    69 00C4 E8				inx
+    70 00C5 D0 C5			bne k
+    71 00C7 E6 90			inc l+2
+    72 00C9 88				dey
+    73 00CA 10 C0			bpl k	
+    74
+    75 00CC A9 4F			lda #$4f
+    76 00CE 8D 48 41			sta dl
+    77 00D1 A9 30			lda #>scr
+    78 00D3 8D 4A 41			sta dl+2
+    79 00D6 8E 49 41			stx dl+1
+    80 00D9 A9 41			lda #$41
+    81 00DB 8D 18 D0			sta colpf2
+    82 00DE 8D 1A D0			sta colbak
+    83 00E1 8D CA 41			sta dl+130
+    84 00E4 8D CC 41			sta dl+132
+    85 00E7 8D 03 D4			sta dlptr+1
+    86 00EA 8D CB 41			sta dl+131
+    87 00ED 8D 02 D4			sta dlptr
+    88
+    89 				; calculate sin tab
+    90 00F0 A0 3F			ldy #$3f
+    91 00F2 A5 60		l0	lda value
+    92 00F4 65 62			adc delta
+    93 00F6 85 60			sta value
+    94 00F8 A5 61			lda value+1
+    95 00FA 65 63			adc delta+1
+    96 00FC 85 61			sta value+1
+    97 00FE 9D C0 11			sta sine+$c0,x
+    98 0101 99 80 11			sta sine+$80,y
+    99 0104 49 FF			eor #$ff
+   100 0106 9D 40 11			sta sine+$40,x
+   101 0109 99 00 11			sta sine+$00,y
+   102 010C A5 62			lda delta
+   103 010E 69 10			adc #$10 
+   104 0110 85 62			sta delta
+   105 0112 90 02			bcc l1
+   106 0114 E6 63			inc delta+1
+   107 0116 E8			l1  inx
+   108 0117 88				dey
+   109 0118 10 D8			bpl l0
+   110 				 
+   111 					
+   112 011A			main_loop	
+   113 011A C6 81			dec y1
+   114 011C C6 80			dec x1
+   115 011E BA			q1	tsx
+   116 011F BD 00 17			lda ch,x
+   117 0122 8D 2F 01			sta qm+2
+   118 0125 BD 00 18			lda cl,x
+   119 0128 8D 2E 01			sta qm+1
+   120 012B A9 00			lda #0
+   121 012D 8D E8 03		qm	sta 1000
+   122
+   123 0130 A6 81			ldx y1
+   124 0132 BD 00 11			lda sine,x
+   125 0135 4A				lsr
+   126 0136 A8				tay
+   127 0137 B9 00 15			lda yh,y
+   128 013A 85 35			sta t2
+   129 013C B9 00 16			lda yl,y
+   130 013F 85 64			sta t1
+   131 					
+   132 0141 A6 80			ldx x1
+   133 0143 BD 00 11			lda sine,x
+   134 0146 A8				tay
+   135 0147 B9 00 13			lda px,y
+   136 014A 18				clc
+   137 014B 65 64			adc t1
+   138 014D BA				tsx
+   139 014E 9D 00 18			sta cl,x
+   140 0151 8D 62 01			sta p0+1
+   141 0154 A5 35			lda t2
+   142 0156 69 00			adc #0
+   143 0158 8D 63 01			sta p0+2
+   144 015B 9D 00 17			sta ch,x
+   145 015E B9 00 14			lda pxb,y
+   146 0161 8D E8 03		p0	sta 1000
+   147 0164 E6 81			inc y1
+   148 0166 C6 80			dec x1
+   149 0168 C6 80			dec x1
+   150 016A C6 80			dec x1
+   151 016C E8				inx
+   152 016D 9A				txs
+   153 016E D0 AE			bne q1
+   154 0170 F0 A8			beq main_loop
+   155 				 
+   156 0172 80 40 20 10 08 04 + t dta b (128,64,32,16,8,4,2,1)
